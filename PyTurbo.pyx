@@ -46,7 +46,8 @@ cdef class PyViterbi:
     def __dealloc__(self):
         del self.cpp_viterbi
 
-    def viterbi_algorithm(self, K, S0, SK, float[::1] _in):
+    def viterbi_algorithm(self, S0, SK, float[::1] _in):
+        cdef int K = _in.shape[0]/self.O
         cdef unsigned char[::1] _out = numpy.zeros(K, dtype=numpy.uint8)
 
         self.cpp_viterbi.viterbi_algorithm(K, S0, SK, &_in[0], &_out[0])

@@ -67,7 +67,7 @@ for i in range(0, K_m):
     bm[O*i:O*(i+1)] = branch_metrics([r[2*i], r[2*i+1]])
 
 #decode message
-m_hat = dec.viterbi_algorithm(K_m, -1, -1, bm);
+m_hat = dec.viterbi_algorithm(-1, -1, bm);
 
 print(numpy.array(m, dtype=numpy.int))
 print('...')
