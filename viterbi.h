@@ -25,6 +25,7 @@
 #include <functional>
 #include <limits>
 #include <vector>
+#include <stdexcept>
 
 /*! A maximum likelihood decoder.
  *
@@ -40,11 +41,11 @@
 class viterbi
 {
 	private:
-		//! The number of input sequences (e.g. 2 for binary codes).
+		//! The number of possible input sequences (e.g. 2 for binary codes).
 		int d_I;
 		//! The number of states in the trellis.
 		int	d_S;
-		//! The number of output sequences (e.g. 4 for a binary code
+		//! The number of possible output sequences.
 		int d_O;
 		/* Gives the next state ns of a branch defined by its
 		 * initial state s and its input symbol i : NS[s*I+i]=ns.
