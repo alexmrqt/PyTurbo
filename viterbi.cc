@@ -44,18 +44,20 @@ viterbi::generate_PS_PI()
 	d_PS.resize(d_S);
 	d_PI.resize(d_S);
 
-	for(int i=0;i<d_S;i++) {
-		d_PS[i].resize(d_I*d_S); // max possible size
-		d_PI[i].resize(d_I*d_S);
-		int j=0;
-		for(int ii=0;ii<d_S;ii++) for(int jj=0;jj<d_I;jj++) {
-			if(d_NS[ii*d_I+jj]!=i) continue;
-			d_PS[i][j]=ii;
-			d_PI[i][j]=jj;
-			j++;
+	for(int i=0 ; i<d_S ; ++i) {
+		d_PS[i].reserve(d_I*d_S); // max possible size
+		d_PI[i].reserve(d_I*d_S);
+
+		for(int ii=0 ; ii<d_S ; ++ii) {
+			for(int jj=0 ; jj<d_I ; ++jj) {
+				if(d_NS[ii*d_I+jj] != i) {
+					continue;
+				}
+
+				d_PS[i].push_back(ii);
+				d_PI[i].push_back(jj);
+			}
 		}
-		d_PS[i].resize(j);
-		d_PI[i].resize(j);
 	}
 }
 
