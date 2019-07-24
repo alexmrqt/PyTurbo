@@ -78,11 +78,13 @@ cdef class PyLogBCJR:
     def __dealloc__(self):
         del self.cpp_log_bcjr
 
-    def viterbi_algorithm(self, S0, SK, float[::1] _in):
+    def log_bcjr_algorithm(self, float[::1] A0, float[::1] BK, float[::1] _in):
         cdef int K = _in.shape[0]/self.O
+        cdef vector[float] A0_vec = A0.tolist()
+        cdef vector[float] BK_vec = BK.tolist()
         cdef vector[float] _in_vec = _in.tolist()
         cdef vector[float] _out = numpy.zeros(self.S*self.I*K, dtype=numpy.float32)
 
-        self.cpp_viterbi.viterbi_algorithm(K, S0, SK, _in_vec, _out)
+        self.cpp_log_bcjr.log_bcjr_algorithm(A0_vec, BK_vec, _in_vec, _out)
 
         return numpy.asarray(_out)
