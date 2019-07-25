@@ -5,6 +5,7 @@ implementing several basic turbo-algorithms (turbo-decoding, turbo-equalization,
 
 ## Currelently Implements
 * The Viterbi Algorithm
+* The Log BCJR Algorithm (sometimes referred as log-MAP or log-forward/backward algorithm).
  
 # Installation
 ## Dependencies
