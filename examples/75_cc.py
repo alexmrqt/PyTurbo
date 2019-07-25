@@ -1,4 +1,6 @@
+from PyTurbo import PyLogBCJR as bcjr
 from PyTurbo import PyViterbi as viterbi
+from matplotlib import pyplot as plt
 
 import numpy
 
@@ -18,18 +20,42 @@ def encode75(msg):
 
     return out_msg
 
-#Compute branch metrics for a pair of received bits
-def branch_metrics(bits_rcvd):
-    ret_val = numpy.zeros(4, dtype=numpy.float32);
-    cw = [[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]] #The 4 different codewords
+#Compute viterbi branch metrics for a sequence of received bits
+def viterbi_branch_metrics(bits_rcvd, nbits_cw):
+    N_cw = (2**nbits_cw)
+    K = int(len(bits_rcvd)/nbits_cw)
+    ret_val = numpy.zeros((K, N_cw), dtype=numpy.float32);
+    cw = numpy.array([[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]]) #The 4 different codewords
 
-    bits_rcvd = numpy.array(bits_rcvd)
-    cw = numpy.array(cw)
+    bits_rcvd = numpy.array(bits_rcvd).reshape((K, nbits_cw))
+    for k in range(0, K):
+        ret_val[k][:] = numpy.sum(numpy.abs(bits_rcvd[k][:]-cw)**2, axis=1)
 
-    for i in range(0, len(cw)):
-        ret_val[i] = numpy.sum(numpy.abs(bits_rcvd-cw[i])**2)
+    return ret_val.flatten()
 
-    return ret_val
+#Compute log-BCJR branch metrics for a sequence of received bits
+def log_bcjr_branch_metrics(bits_rcvd, nbits_cw, sigma_b2):
+    N_cw = (2**nbits_cw)
+    K = int(len(bits_rcvd)/nbits_cw)
+    ret_val = numpy.zeros((K, N_cw), dtype=numpy.float32);
+    cw = numpy.array([[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]]) #The 4 different codewords
+
+    bits_rcvd = numpy.array(bits_rcvd).reshape((K, nbits_cw))
+    for k in range(0, K):
+        ret_val[k][:] = -1.0/sigma_b2 * numpy.sum(numpy.abs(bits_rcvd[k][:]-cw)**2, axis=1)
+
+    return ret_val.flatten()
+
+#Compute bit LLR from a posteriori-probabilities
+def compute_llr(app, K, S):
+    llr = numpy.zeros(K, dtype=numpy.float32)
+
+    app = app.reshape((K, S, 2))
+    for k in range(0, K):
+        #We need copy() to make the vectors C-contiguous
+        llr[k] = bcjr.max_star(app[k,:,0].copy()) - bcjr.max_star(app[k,:,1].copy())
+
+    return llr
 
 #Define trellis
 I=2
@@ -43,36 +69,66 @@ OS = [0, 3, \
       3, 0, \
       1, 2, \
       2, 1]
-
-#Create decoder instance
-dec = viterbi(I, S, O, NS, OS)
+R = 1/2 # Code efficiency
 
 #Length of the message
-K_m = 100;
+K_m = 200000;
 #Length of the coded message
-K_c = 200 #Code efficiency is 1/2
+K_c = int(K_m/R) #Code efficiency is 1/2
 
-#Generate message
-m = numpy.random.randint(0, 2, K_m, dtype=numpy.bool)
+# Per-bit SNR (in dB)
+EbN0dB = numpy.arange(0, 10)
 
-#Encode message
-c = encode75(m)
+# Compute noise variance from EB/N0
+sigma_b2 = numpy.power(10, -EbN0dB/10)
+sigma_b2 *= 1/2 # 0.5*Ps/R
 
-#Add noise
-r = c + numpy.random.normal(0.0, 0.01, K_c)
+#Create decoder instance
+dec_vit = viterbi(I, S, O, NS, OS)
+dec_log_bcjr = bcjr(I, S, O, NS, OS)
 
-#Compute branch metrics
-bm = numpy.zeros(K_m*O, dtype=numpy.float32)
-for i in range(0, K_m):
-    bm[O*i:O*(i+1)] = branch_metrics([r[2*i], r[2*i+1]])
+BER_viterbi = numpy.zeros(len(EbN0dB))
+BER_log_bcjr = numpy.zeros(len(EbN0dB))
+for i in range(0, len(EbN0dB)):
+    #Generate message
+    m = numpy.random.randint(0, 2, K_m, dtype=numpy.bool)
 
-#decode message
-m_hat = dec.viterbi_algorithm(-1, -1, bm);
+    #Encode message
+    c = encode75(m)
 
-print(numpy.array(m, dtype=numpy.int))
-print('...')
-print(m_hat)
+    #Add noise
+    noise = numpy.random.normal(0.0, numpy.sqrt(sigma_b2[i]), K_c) \
+            + 1j*numpy.random.normal(0.0, numpy.sqrt(sigma_b2[i]), K_c)
+    noise /= numpy.sqrt(2)
+    r = c + noise
 
-##Compute BER
-BER = numpy.sum(numpy.abs(m-m_hat))/K_m
-print(BER)
+    ## Viterbi
+    #Compute branch metrics
+    bm_viterbi = viterbi_branch_metrics(r, int(1/R))
+
+    #decode message
+    m_hat_viterbi = dec_vit.viterbi_algorithm(-1, -1, bm_viterbi);
+
+    ## Log BCJR
+    #Compute branch metrics
+    bm_log_bcjr = log_bcjr_branch_metrics(r, int(1/R), sigma_b2[i])
+
+    #Compute posterior probabilities of codewords
+    #A0 = numpy.log([1.0, 1e-20, 1e-20, 1e-20], dtype=numpy.float32) #Trellis begin in first state (all-0)
+    A0 = numpy.log([1.0/4]*4, dtype=numpy.float32) #Do not know in which state we end
+    BK = numpy.log([1.0/4]*4, dtype=numpy.float32) #Do not know in which state we end
+    post_log_bcjr = dec_log_bcjr.log_bcjr_algorithm(A0, BK, bm_log_bcjr);
+
+    #Compute bit LLR and take decisions
+    llr = compute_llr(post_log_bcjr, K_m, S)
+    m_hat_log_bcjr = (llr<0)
+
+    ##Compute BER
+    BER_viterbi[i] = numpy.mean(numpy.abs(m!=m_hat_viterbi))
+    print('BER For viterbi at Eb/N0 = ' + str(EbN0dB[i]) + 'dB: ' + str(BER_viterbi[i]))
+    BER_log_bcjr[i] = numpy.mean(numpy.abs(m!=m_hat_log_bcjr))
+    print('BER For log_bcjr at Eb/N0 = ' + str(EbN0dB[i]) + 'dB: ' + str(BER_log_bcjr[i]))
+
+plt.semilogy(EbN0dB, BER_viterbi);
+plt.semilogy(EbN0dB, BER_log_bcjr);
+plt.show()
