@@ -61,7 +61,24 @@ class log_bcjr
 		//! Generates PS, PI and T tables.
 		void generate_PS_PI();
 
-	protected:
+	public:
+		//! Default constructor.
+		log_bcjr();
+
+		/*! Constructs a log_bcjr object.
+		 * \param I The number of input sequences (e.g. 2 for binary codes).
+		 * \param S The number of states in the trellis.
+		 * \param O The number of output sequences (e.g. 4 for a binary code
+		 *  with a coding efficiency of 1/2).
+		 * \param NS Gives the next state ns of a branch defined by its
+		 *  initial state s and its input symbol i : NS[s*I+i]=ns.
+		 * \param OS Gives the output symbol os of a branch defined by its
+		 *  initial state s and its input symbol i : OS[s*I+i]=os.
+		 */
+		log_bcjr(int I, int S, int O,
+				const std::vector<int> &NS,
+				const std::vector<int> &OS);
+
 		//! Computes max* of two value.
 		/*!
 		 * The returned value is computed as follows:
@@ -152,44 +169,30 @@ class log_bcjr
 		 *
 		 * where s' = NS(s,i) is the next state for transition with initial
 		 * state s and input symbol i (NS[s*I+i]).
+		 * Which is equivalent to log a-posteriori probabilites, up to an
+		 * additive constant.
 		 *
 		 * \param A Const reference to the forward metrics vector (size: d_S*(K+1)).
 		 * \param B Const reference to the backward metrics vector (size: d_S*(K+1)).
 		 * \param G Const reference to the branch log metrics vector (size: d_O*K).
 		 * \param K Number of observations.
 		 * \param out Reference to a posteriori branch log probabilities (will
-		 * have a size of d_S*d_I*K at the end of function execution).
+		 *  have a size of d_S*d_I*K at the end of function execution).
 		 *
 		 */
 		virtual void compute_app(const std::vector<float> &A,
 				const std::vector<float> &B, const std::vector<float> &G,
 				size_t K, std::vector<float> &out);
 
-	public:
-		//! Default constructor.
-		log_bcjr();
-
-		/*! Constructs a log_bcjr object.
-		 * \param I The number of input sequences (e.g. 2 for binary codes).
-		 * \param S The number of states in the trellis.
-		 * \param O The number of output sequences (e.g. 4 for a binary code
-		 *  with a coding efficiency of 1/2).
-		 * \param NS Gives the next state ns of a branch defined by its
-		 *  initial state s and its input symbol i : NS[s*I+i]=ns.
-		 * \param OS Gives the output symbol os of a branch defined by its
-		 *  initial state s and its input symbol i : OS[s*I+i]=os.
-		 */
-		log_bcjr(int I, int S, int O,
-				const std::vector<int> &NS,
-				const std::vector<int> &OS);
-
-		/*! Actually computes logarithm of a posteriori probabilities for a
+		/*! Actually computes logarithm of a-posteriori probabilities for a
 		 * given observation sequence.
 		 *
-		 * \param A0 Log of initial state probabilities of the encoder.
-		 * \param BK Log of final state probabilities of the encoder.
-		 * \param in Log of input branch metrics for the algorithm.
-		 * \param out Output Log of a posteriori branch probabilities.
+		 * \param A0 Log of initial state probabilities of the encoder (size: d_S).
+		 * \param BK Log of final state probabilities of the encoder (size: d_S).
+		 * \param in Log of input branch metrics for the algorithm (size: d_O*k).
+		 * \param out A quantity equivalent to log a-posteriori probabilites, up
+		 *  to an additive constant (will have a size of d_S*d_I*K at the end of
+		 *  function execution).
 		 */
 		void log_bcjr_algorithm(const std::vector<float> &A0,
 				const std::vector<float> &BK,

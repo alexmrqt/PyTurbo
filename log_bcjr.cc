@@ -64,7 +64,7 @@ log_bcjr::generate_PS_PI()
 float
 log_bcjr::max_star(const float *vec, size_t n_ele)
 {
-	float ret_val = std::numeric_limits<float>::min();
+	float ret_val = -std::numeric_limits<float>::max();
 
 	for (float *vec_it = (float*)vec ; vec_it < (vec + n_ele) ; ++vec_it) {
 		ret_val = max_star(ret_val, *vec_it);
@@ -77,11 +77,11 @@ void
 log_bcjr::compute_fw_metrics(const std::vector<float> &G,
 		const std::vector<float> &A0, std::vector<float> &A, size_t K)
 {
-	A.resize(d_S*(K+1), std::numeric_limits<float>::max());
+	A.resize(d_S*(K+1), -std::numeric_limits<float>::max());
 
-	float norm_A = std::numeric_limits<float>::min();
+	float norm_A = -std::numeric_limits<float>::max();
 	std::vector<float>::iterator A_prev, A_curr;
-	std::vector<int>::const_iterator PS_it, PI_it;
+	std::vector<int>::iterator PS_it, PI_it;
 
 	//Integrate initial forward metrics
 	std::copy(A0.begin(), A0.end(), A.begin());
@@ -109,13 +109,15 @@ log_bcjr::compute_fw_metrics(const std::vector<float> &G,
 
 			//Update iterators
 			++A_curr;
-			++A_prev;
 		}
 
+		//Advance A_prev
+		A_prev += d_S;
+
 		//Metrics normalization
-		norm_A = max_star(&(*A_prev), d_S);
-		std::transform(A_prev, A_curr-1, A_prev,
-				std::bind2nd(std::minus<double>(), norm_A));
+		norm_A = max_star(&(*(A_prev)), d_S);
+		std::transform(A_prev, A_curr, A_prev,
+				std::bind2nd(std::minus<float>(), norm_A));
 	}
 }
 
@@ -123,45 +125,46 @@ void
 log_bcjr::compute_bw_metrics(const std::vector<float> &G,
 		const std::vector<float> &BK, std::vector<float> &B, size_t K)
 {
-	B.resize(d_S*(K+1), std::numeric_limits<float>::max());
+	B.resize(d_S*(K+1), -std::numeric_limits<float>::max());
 
-	float norm_B = std::numeric_limits<float>::min();
-	std::vector<float>::iterator B_next, B_curr;
-	std::vector<int>::const_iterator NS_it, OS_it;
+	float norm_B = -std::numeric_limits<float>::max();
+	std::vector<float>::reverse_iterator B_next, B_curr;
+	std::vector<int>::reverse_iterator NS_it, OS_it;
 
 	//Integrate initial forward metrics
-	std::copy(BK.begin(), BK.end(), B.end() - d_S + 1);
+	std::copy(BK.rbegin(), BK.rend(), B.rbegin());
 
 	//Initialize iterators
-	B_curr = B.end();
-	B_next = B.begin() - d_S;
-	for(std::vector<float>::const_iterator G_k = G.end() ;
-			G_k != G.begin() ; G_k -= d_O) {
+	B_curr = B.rbegin() + d_S;
+	B_next = B.rbegin();
+	for(std::vector<float>::const_reverse_iterator G_k = G.rbegin() ;
+			G_k != G.rend() ; G_k += d_O) {
 
-		for(int s=d_S-1 ; s >= 0 ; --s) {
-			//Iterators for next state and next output lists
-			NS_it=d_NS.end();
-			OS_it=d_OS.end();
-
+		//Iterators for next state and next output lists
+		NS_it=d_NS.rbegin();
+		OS_it=d_OS.rbegin();
+		for(int s=0 ; s < d_S ; ++s) {
 			//Loop
-			for(size_t i=d_I-1 ; i >= 0 ; --i) {
+			for(size_t i=0 ; i < d_I ; ++i) {
 				*B_curr = max_star(*B_curr,
-						B_next[*NS_it] + G_k[*OS_it]);
+						B_next[(d_S-1)-*NS_it] + G_k[(d_S-1)-*OS_it]);
 
 				//Update PS/PI iterators
-				--NS_it;
-				--OS_it;
+				++NS_it;
+				++OS_it;
 			}
 
 			//Update iterators
-			--B_curr;
-			--B_next;
+			++B_curr;
 		}
 
+		//Advance B_next (go back, as it is a reverse iterator...)
+		B_next += d_S;
+
 		//Metrics normalization
-		norm_B = max_star(&(*B_next), d_S);
-		std::transform(B_next, B_next + d_S-1, B_next,
-				std::bind2nd(std::minus<double>(), norm_B));
+		norm_B = max_star(&(*B_curr)+1, d_S);
+		std::transform(B_next, B_curr, B_next,
+				std::bind2nd(std::minus<float>(), norm_B));
 	}
 }
 
@@ -179,7 +182,7 @@ log_bcjr::compute_app(const std::vector<float> &A, const std::vector<float> &B,
 
 		for(int s=0 ; s < d_S ; ++s) {
 			for (int i=0 ; i < d_I ; ++i) {
-				out.push_back(B_it[d_NS[s*d_I+i]] + G_k[d_OS[s*d_I+i] + *A_it]);
+				out.push_back(B_it[d_NS[s*d_I+i]] + G_k[d_OS[s*d_I+i]] + *A_it);
 			}
 
 			//Update forward iterator
@@ -196,14 +199,14 @@ log_bcjr::log_bcjr_algorithm(const std::vector<float> &A0,
 		const std::vector<float> &BK, const std::vector<float> &in,
 		std::vector<float> &out)
 {
-	std::vector<float> G, A, B;
-	size_t K = out.size()/d_I;
+	std::vector<float> A, B;
+	size_t K = in.size()/d_O;
 
 	//Forward recursion
-	compute_fw_metrics(G, A0, A, K);
+	compute_fw_metrics(in, A0, A, K);
 
 	//Backward recursion
-	compute_bw_metrics(G, BK, B, K);
+	compute_bw_metrics(in, BK, B, K);
 
 	//Compute branch APP
 	compute_app(A, B, in, K, out);
