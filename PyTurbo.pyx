@@ -65,7 +65,7 @@ cdef class PyViterbi:
 
         self.cpp_viterbi.viterbi_algorithm(K, S0, SK, &_in[0], &_out[0])
 
-        return numpy.asarray(_out, dtype=numpy.uint8)
+        return numpy.asarray(_out, dtype=numpy.uint16)
 
 cdef class PyLogBCJR:
     cdef int I, S, O

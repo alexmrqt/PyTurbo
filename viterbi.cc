@@ -63,7 +63,7 @@ viterbi::generate_PS_PI()
 
 void
 viterbi::viterbi_algorithm(int K, int S0, int SK, const float *in,
-		unsigned char *out)
+		unsigned int *out)
 {
 	viterbi_algorithm(d_I, d_S, d_O, d_NS, d_OS, d_PS, d_PI, K, S0, SK, in, out);
 }
@@ -72,7 +72,7 @@ void
 viterbi::viterbi_algorithm(int I, int S, int O, const std::vector<int> &NS,
 	const std::vector<int> &OS, const std::vector< std::vector<int> > &PS,
 	const std::vector< std::vector<int> > &PI, int K, int S0, int SK,
-	const float *in, unsigned char *out)
+	const float *in, unsigned int *out)
 {
 	int tb_state, pidx;
 	float can_metric = std::numeric_limits<float>::max();
@@ -147,14 +147,14 @@ viterbi::viterbi_algorithm(int I, int S, int O, const std::vector<int> &NS,
 	//Traceback
 	trace_it = trace.end() - S; //place trace_it at the last time index
 
-	for(unsigned char* out_k = out+K-1 ; out_k >= out ; --out_k) {
+	for(unsigned int* out_k = out+K-1 ; out_k >= out ; --out_k) {
 		//Retrieve previous input index from trace
 		pidx=*(trace_it + tb_state);
 		//Update trace_it for next output symbol
 		trace_it -= S;
 
 		//Output previous input
-		*out_k = (unsigned char) PI[tb_state][pidx];
+		*out_k = (unsigned int) PI[tb_state][pidx];
 
 		//Update tb_state with the previous state on the shortest path
 		tb_state = PS[tb_state][pidx];

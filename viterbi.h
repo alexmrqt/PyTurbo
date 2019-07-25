@@ -92,7 +92,7 @@ class viterbi
 		 * \param out Output decoded sequence.
 		 */
 		void viterbi_algorithm(int K, int S0, int SK,
-				const float *in, unsigned char *out);
+				const float *in, unsigned int *out);
 
 		/*! Actual Viterbi algorithm implementation.
 		 *
@@ -119,7 +119,7 @@ class viterbi
 				const std::vector< std::vector<int> > &PS,
 				const std::vector< std::vector<int> > &PI,
 				int K, int S0, int SK,
-				const float *in, unsigned char *out);
+				const float *in, unsigned int *out);
 
 		//! Getter for d_I.
 		int get_I() { return d_I; }
