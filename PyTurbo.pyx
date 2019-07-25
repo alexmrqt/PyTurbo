@@ -37,6 +37,8 @@ cdef extern from "log_bcjr.cc":
 cdef extern from "log_bcjr.h":
     cppclass log_bcjr:
         log_bcjr(int, int, int, vector[int], vector[int]) except +
+        @staticmethod
+        float max_star(const float*, size_t)
         void log_bcjr_algorithm(vector[float], vector[float], vector[float], vector[float])
         int get_I()
         int get_S()
@@ -63,7 +65,7 @@ cdef class PyViterbi:
 
         self.cpp_viterbi.viterbi_algorithm(K, S0, SK, &_in[0], &_out[0])
 
-        return numpy.asarray(_out)
+        return numpy.asarray(_out, dtype=numpy.uint8)
 
 cdef class PyLogBCJR:
     cdef int I, S, O
@@ -78,10 +80,15 @@ cdef class PyLogBCJR:
     def __dealloc__(self):
         del self.cpp_log_bcjr
 
+    @staticmethod
+    def max_star(float[::1] vec):
+        cdef size_t n_ele = vec.shape[0]
+
+        return log_bcjr.max_star(&vec[0], n_ele)
+
     def log_bcjr_algorithm(self, vector[float] &A0, vector[float] &BK, vector[float] &_in):
-        cdef int K = _in.size()/self.O
-        cdef vector[float] _out = numpy.zeros(self.S*self.I*K, dtype=numpy.float32)
+        cdef vector[float] _out
 
         self.cpp_log_bcjr.log_bcjr_algorithm(A0, BK, _in, _out)
 
-        return numpy.asarray(_out)
+        return numpy.asarray(_out, dtype=numpy.float32)
