@@ -147,7 +147,7 @@ log_bcjr::compute_bw_metrics(const std::vector<float> &G,
 			//Loop
 			for(size_t i=0 ; i < d_I ; ++i) {
 				*B_curr = max_star(*B_curr,
-						B_next[(d_S-1)-*NS_it] + G_k[(d_S-1)-*OS_it]);
+						B_next[(d_S-1)-*NS_it] + G_k[(d_O-1)-*OS_it]);
 
 				//Update PS/PI iterators
 				++NS_it;
@@ -175,6 +175,14 @@ log_bcjr::compute_app(const std::vector<float> &A, const std::vector<float> &B,
 	std::vector<float>::const_iterator A_it = A.begin();
 	std::vector<float>::const_iterator B_it = B.begin() + d_S;
 
+	//std::vector<float>::const_iterator it1 = A.begin();
+	//std::vector<float>::const_iterator it2 = B.begin();
+	//while(it1 != A.end()) {
+	//	std::cout << "A " << *it1 << "\tB " << *it2 << std::endl;
+	//	++it1; ++it2;
+	//}
+	//std::cout << std::endl;
+
 	out.reserve(d_S*d_I*K);
 
 	for(std::vector<float>::const_iterator G_k = G.begin() ;
@@ -191,6 +199,8 @@ log_bcjr::compute_app(const std::vector<float> &A, const std::vector<float> &B,
 
 		//Update backward iterator
 		B_it += d_S;
+
+		//std::cout << "---------------------------------------------------" << std::endl;
 	}
 }
 
