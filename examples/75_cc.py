@@ -72,12 +72,12 @@ OS = [0, 3, \
 R = 1/2 # Code efficiency
 
 #Length of the message
-K_m = 200000;
+K_m = 500000;
 #Length of the coded message
 K_c = int(K_m/R) #Code efficiency is 1/2
 
 # Per-bit SNR (in dB)
-EbN0dB = numpy.arange(0, 10)
+EbN0dB = numpy.arange(0, 8)
 
 # Compute noise variance from EB/N0
 sigma_b2 = numpy.power(10, -EbN0dB/10)
@@ -129,6 +129,10 @@ for i in range(0, len(EbN0dB)):
     BER_log_bcjr[i] = numpy.mean(numpy.abs(m!=m_hat_log_bcjr))
     print('BER For log_bcjr at Eb/N0 = ' + str(EbN0dB[i]) + 'dB: ' + str(BER_log_bcjr[i]))
 
-plt.semilogy(EbN0dB, BER_viterbi);
-plt.semilogy(EbN0dB, BER_log_bcjr);
+plt.semilogy(EbN0dB, BER_viterbi, label="Viterbi")
+plt.semilogy(EbN0dB, BER_log_bcjr, label="Log-BCJR")
+plt.legend()
+plt.xlabel("E_b/N_0 (dB)")
+plt.ylabel("BER")
+plt.grid(True)
 plt.show()
