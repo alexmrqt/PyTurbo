@@ -26,7 +26,7 @@ cdef extern from "viterbi.cc":
 cdef extern from "viterbi.h":
     cppclass viterbi:
         viterbi(int, int, int, vector[int], vector[int]) except +
-        void viterbi_algorithm(int K, int S0, int, const float*, unsigned char*)
+        void viterbi_algorithm(int K, int S0, int, const float*, unsigned int*)
         int get_I()
         int get_S()
         int get_O()
@@ -61,7 +61,7 @@ cdef class PyViterbi:
 
     def viterbi_algorithm(self, S0, SK, float[::1] _in):
         cdef int K = _in.shape[0]/self.O
-        cdef unsigned char[::1] _out = numpy.zeros(K, dtype=numpy.uint8)
+        cdef unsigned int[::1] _out = numpy.zeros(K, dtype=numpy.uint32)
 
         self.cpp_viterbi.viterbi_algorithm(K, S0, SK, &_in[0], &_out[0])
 
