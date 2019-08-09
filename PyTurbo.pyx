@@ -31,18 +31,28 @@ cdef extern from "viterbi.h":
         int get_S()
         int get_O()
 
-cdef extern from "log_bcjr.cc":
+cdef extern from "log_bcjr_base.cc":
     pass
 
-cdef extern from "log_bcjr.h":
-    cppclass log_bcjr:
-        log_bcjr(int, int, int, vector[int], vector[int]) except +
-        @staticmethod
-        float max_star(const float*, size_t)
+cdef extern from "log_bcjr_base.h":
+    cppclass log_bcjr_base:
+        log_bcjr_base(int, int, int, vector[int], vector[int]) except +
         void log_bcjr_algorithm(vector[float], vector[float], vector[float], vector[float])
         int get_I()
         int get_S()
         int get_O()
+
+cdef extern from "log_bcjr.h":
+    cppclass log_bcjr(log_bcjr_base):
+        log_bcjr(int, int, int, vector[int], vector[int]) except +
+        @staticmethod
+        float max_star(const float*, size_t)
+
+cdef extern from "max_log_bcjr.h":
+    cppclass max_log_bcjr(log_bcjr_base):
+        max_log_bcjr(int, int, int, vector[int], vector[int]) except +
+        @staticmethod
+        float max(const float*, size_t)
 
 import numpy
 
@@ -90,5 +100,31 @@ cdef class PyLogBCJR:
         cdef vector[float] _out
 
         self.cpp_log_bcjr.log_bcjr_algorithm(A0, BK, _in, _out)
+
+        return numpy.asarray(_out, dtype=numpy.float32)
+
+cdef class PyMaxLogBCJR:
+    cdef int I, S, O
+    cdef max_log_bcjr* cpp_max_log_bcjr
+
+    def __cinit__(self, int I, int S, int O, vector[int] NS, vector[int] OS):
+        self.cpp_max_log_bcjr= new max_log_bcjr(I, S, O, NS, OS)
+        self.I = self.cpp_max_log_bcjr.get_I()
+        self.S = self.cpp_max_log_bcjr.get_S()
+        self.O = self.cpp_max_log_bcjr.get_O()
+
+    def __dealloc__(self):
+        del self.cpp_max_log_bcjr
+
+    @staticmethod
+    def max(float[::1] vec):
+        cdef size_t n_ele = vec.shape[0]
+
+        return max_log_bcjr.max(&vec[0], n_ele)
+
+    def log_bcjr_algorithm(self, vector[float] &A0, vector[float] &BK, vector[float] &_in):
+        cdef vector[float] _out
+
+        self.cpp_max_log_bcjr.log_bcjr_algorithm(A0, BK, _in, _out)
 
         return numpy.asarray(_out, dtype=numpy.float32)

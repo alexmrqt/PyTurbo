@@ -18,9 +18,9 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include "log_bcjr.h"
+#include "log_bcjr_base.h"
 
-log_bcjr::log_bcjr(int I, int S, int O,
+log_bcjr_base::log_bcjr_base(int I, int S, int O,
 		const std::vector<int> &NS,
 		const std::vector<int> &OS)
 	: d_I(I), d_S(S), d_O(O)
@@ -39,7 +39,7 @@ log_bcjr::log_bcjr(int I, int S, int O,
 }
 
 void
-log_bcjr::generate_PS_PI()
+log_bcjr_base::generate_PS_PI()
 {
 	d_PS.resize(d_S);
 	d_PI.resize(d_S);
@@ -61,20 +61,8 @@ log_bcjr::generate_PS_PI()
 	}
 }
 
-float
-log_bcjr::max_star(const float *vec, size_t n_ele)
-{
-	float ret_val = -std::numeric_limits<float>::max();
-
-	for (float *vec_it = (float*)vec ; vec_it < (vec + n_ele) ; ++vec_it) {
-		ret_val = max_star(ret_val, *vec_it);
-	}
-
-	return ret_val;
-}
-
 void
-log_bcjr::compute_fw_metrics(const std::vector<float> &G,
+log_bcjr_base::compute_fw_metrics(const std::vector<float> &G,
 		const std::vector<float> &A0, std::vector<float> &A, size_t K)
 {
 	A.resize(d_S*(K+1), -std::numeric_limits<float>::max());
@@ -99,7 +87,7 @@ log_bcjr::compute_fw_metrics(const std::vector<float> &G,
 
 			//Loop
 			for(size_t i=0 ; i<(d_PS[s]).size() ; ++i) {
-				*A_curr = max_star(*A_curr,
+				*A_curr = _max_star(*A_curr,
 						A_prev[*PS_it] + G_k[d_OS[(*PS_it)*d_I + (*PI_it)]]);
 
 				//Update PS/PI iterators
@@ -115,14 +103,14 @@ log_bcjr::compute_fw_metrics(const std::vector<float> &G,
 		A_prev += d_S;
 
 		//Metrics normalization
-		norm_A = max_star(&(*(A_prev)), d_S);
+		norm_A = _max_star(&(*(A_prev)), d_S);
 		std::transform(A_prev, A_curr, A_prev,
 				std::bind2nd(std::minus<float>(), norm_A));
 	}
 }
 
 void
-log_bcjr::compute_bw_metrics(const std::vector<float> &G,
+log_bcjr_base::compute_bw_metrics(const std::vector<float> &G,
 		const std::vector<float> &BK, std::vector<float> &B, size_t K)
 {
 	B.resize(d_S*(K+1), -std::numeric_limits<float>::max());
@@ -146,7 +134,7 @@ log_bcjr::compute_bw_metrics(const std::vector<float> &G,
 		for(int s=0 ; s < d_S ; ++s) {
 			//Loop
 			for(size_t i=0 ; i < d_I ; ++i) {
-				*B_curr = max_star(*B_curr,
+				*B_curr = _max_star(*B_curr,
 						B_next[(d_S-1)-*NS_it] + G_k[(d_O-1)-*OS_it]);
 
 				//Update PS/PI iterators
@@ -162,26 +150,18 @@ log_bcjr::compute_bw_metrics(const std::vector<float> &G,
 		B_next += d_S;
 
 		//Metrics normalization
-		norm_B = max_star(&(*B_curr)+1, d_S);
+		norm_B = _max_star(&(*B_curr)+1, d_S);
 		std::transform(B_next, B_curr, B_next,
 				std::bind2nd(std::minus<float>(), norm_B));
 	}
 }
 
 void
-log_bcjr::compute_app(const std::vector<float> &A, const std::vector<float> &B,
+log_bcjr_base::compute_app(const std::vector<float> &A, const std::vector<float> &B,
 		const std::vector<float> &G, size_t K, std::vector<float> &out)
 {
 	std::vector<float>::const_iterator A_it = A.begin();
 	std::vector<float>::const_iterator B_it = B.begin() + d_S;
-
-	//std::vector<float>::const_iterator it1 = A.begin();
-	//std::vector<float>::const_iterator it2 = B.begin();
-	//while(it1 != A.end()) {
-	//	std::cout << "A " << *it1 << "\tB " << *it2 << std::endl;
-	//	++it1; ++it2;
-	//}
-	//std::cout << std::endl;
 
 	out.reserve(d_S*d_I*K);
 
@@ -199,13 +179,11 @@ log_bcjr::compute_app(const std::vector<float> &A, const std::vector<float> &B,
 
 		//Update backward iterator
 		B_it += d_S;
-
-		//std::cout << "---------------------------------------------------" << std::endl;
 	}
 }
 
 void
-log_bcjr::log_bcjr_algorithm(const std::vector<float> &A0,
+log_bcjr_base::log_bcjr_algorithm(const std::vector<float> &A0,
 		const std::vector<float> &BK, const std::vector<float> &in,
 		std::vector<float> &out)
 {
@@ -221,3 +199,4 @@ log_bcjr::log_bcjr_algorithm(const std::vector<float> &A0,
 	//Compute branch APP
 	compute_app(A, B, in, K, out);
 }
+

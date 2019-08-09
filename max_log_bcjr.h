@@ -18,9 +18,8 @@
  * Boston, MA 02110-1301, USA.
  */
 
-
-#ifndef INCLUDED_TURBO_LOG_BCJR_H
-#define INCLUDED_TURBO_LOG_BCJR_H
+#ifndef INCLUDED_TURBO_MAX_LOG_BCJR_H
+#define INCLUDED_TURBO_MAX_LOG_BCJR_H
 
 #include "log_bcjr_base.h"
 
@@ -28,11 +27,11 @@
 * \brief <+description+>
 *
 */
-class log_bcjr : public log_bcjr_base
+class max_log_bcjr : public log_bcjr_base
 {
 	public:
 		//! Default constructor.
-		log_bcjr();
+		max_log_bcjr();
 
 		/*! Constructs a log_bcjr object.
 		 * \param I The number of input sequences (e.g. 2 for binary codes).
@@ -44,51 +43,37 @@ class log_bcjr : public log_bcjr_base
 		 * \param OS Gives the output symbol os of a branch defined by its
 		 *  initial state s and its input symbol i : OS[s*I+i]=os.
 		 */
-		log_bcjr(int I, int S, int O,
+		max_log_bcjr(int I, int S, int O,
 				const std::vector<int> &NS,
 				const std::vector<int> &OS) : log_bcjr_base(I, S, O, NS, OS) {};
 
-		//! Computes max* of two value.
+		//! Computes max of two value.
 		/*!
-		 * The returned value is computed as follows:
-		 *
-		 * max* (A, B) = max (A, B) + log(1 + exp(-|B-A|))
-		 *
 		 * \param A First operand.
 		 * \param B Second operand.
 		 *
-		 * \return max*(A,B).
+		 * \return max(A,B).
 		 */
-		static inline float max_star(float A, float B)
+		static inline float max(float A, float B)
 		{
-			return std::max(A, B) + log(1.0 + exp(-fabs(A - B)));
+			return std::max(A, B);
 		}
 		// Override log_bcjr_base method
-		float _max_star(float A, float B) { return max_star(A, B); }
+		float _max_star(float A, float B) { return max(A, B); }
 
-		//! Recursively compute max* of a vector.
+		//! Compute max of a vector.
 		/*!
-		 * To compute max*(A,B,C,...), recursive calls to max* are performed.
-		 * For instance: max*(A,B,C) = max*(max*(A,B),C).
-		 *
 		 * \param vec Input data.
 		 * \param n_ele number of elements in the vector.
 		 *
-		 * \return: max* of vec.
-		 * If axis is given, the result is an array of dimension vec.ndim - 1.
+		 * \return: max of vec.
 		 */
-		static float max_star(const float *vec, size_t n_ele)
+		static inline float max(const float *vec, size_t n_ele)
 		{
-			float ret_val = -std::numeric_limits<float>::max();
-		
-			for (float *vec_it = (float*)vec ; vec_it < (vec + n_ele) ; ++vec_it) {
-				ret_val = max_star(ret_val, *vec_it);
-			}
-		
-			return ret_val;
+			return *std::max_element(vec, vec+n_ele);
 		}
 		// Override log_bcjr_base method
-		float _max_star(const float *vec, size_t n_ele) { return max_star(vec, n_ele); }
+		float _max_star(const float *vec, size_t n_ele) { return max(vec, n_ele); }
 };
 
-#endif /* INCLUDED_TURBO_LOG_BCJR_H */
+#endif /* INCLUDED_TURBO_MAX_LOG_BCJR_H */
