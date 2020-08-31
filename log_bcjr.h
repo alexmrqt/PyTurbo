@@ -61,15 +61,13 @@ class log_bcjr : public log_bcjr_base
 		 */
 		static inline float max_star(float A, float B)
 		{
-			return std::max(A, B) + log(1.0 + exp(-fabs(A - B)));
+			return (A>B) ? A + log1p(exp(B-A)) : B + log1p(exp(A-B));
 		}
 		// Override log_bcjr_base method
 		float _max_star(float A, float B) { return max_star(A, B); }
 
 		//! Recursively compute max* of a vector.
 		/*!
-		 * To compute max*(A,B,C,...), recursive calls to max* are performed.
-		 * For instance: max*(A,B,C) = max*(max*(A,B),C).
 		 *
 		 * \param vec Input data.
 		 * \param n_ele number of elements in the vector.
@@ -79,13 +77,14 @@ class log_bcjr : public log_bcjr_base
 		 */
 		static float max_star(const float *vec, size_t n_ele)
 		{
-			float ret_val = -std::numeric_limits<float>::max();
+			float max_val = *std::max_element(vec, vec+n_ele);
+			float exp_val = 0.0;
 		
 			for (float *vec_it = (float*)vec ; vec_it < (vec + n_ele) ; ++vec_it) {
-				ret_val = max_star(ret_val, *vec_it);
+				exp_val += exp(*vec_it - max_val);
 			}
 		
-			return ret_val;
+			return max_val + log(exp_val);
 		}
 		// Override log_bcjr_base method
 		float _max_star(const float *vec, size_t n_ele) { return max_star(vec, n_ele); }
