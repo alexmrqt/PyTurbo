@@ -23,7 +23,7 @@
 log_bcjr_base::log_bcjr_base(int I, int S, int O,
 		const std::vector<int> &NS,
 		const std::vector<int> &OS)
-	: d_I(I), d_S(S), d_O(O)
+	: d_I(I), d_S(S), d_O(O), d_ordered_OS(S*I)
 {
 	if (NS.size() != S*I) {
 		throw std::runtime_error("Invalid size for NS.");
@@ -36,6 +36,14 @@ log_bcjr_base::log_bcjr_base(int I, int S, int O,
 	d_OS = OS;
 
 	generate_PS_PI();
+
+	//Compute ordered_OS
+	std::vector<int>::iterator ordered_OS_it = d_ordered_OS.begin();
+	for(int s=0 ; s < S ; ++s) {
+		for(size_t i=0 ; i<(d_PS[s]).size() ; ++i) {
+			*(ordered_OS_it++) = OS[d_PS[s][i]*I + d_PI[s][i]];
+		}
+	}
 }
 
 void
@@ -69,7 +77,7 @@ log_bcjr_base::compute_fw_metrics(const std::vector<float> &G,
 
 	float norm_A = -std::numeric_limits<float>::max();
 	std::vector<float>::iterator A_prev, A_curr;
-	std::vector<int>::iterator PS_it, PI_it;
+	std::vector<int>::iterator PS_it, ordered_OS_it;
 
 	//Integrate initial forward metrics
 	std::copy(A0.begin(), A0.end(), A.begin());
@@ -80,19 +88,18 @@ log_bcjr_base::compute_fw_metrics(const std::vector<float> &G,
 	for(std::vector<float>::const_iterator G_k = G.begin() ;
 			G_k != G.end() ; G_k += d_O) {
 
+        ordered_OS_it = d_ordered_OS.begin();
 		for(int s=0 ; s < d_S ; ++s) {
 			//Iterators for previous state and previous input lists
 			PS_it=d_PS[s].begin();
-			PI_it=d_PI[s].begin();
 
 			//Loop
 			for(size_t i=0 ; i<(d_PS[s]).size() ; ++i) {
+				// Equivalent to:
+				// *A_curr = _max_star(*A_curr,
+				// A_prev[PS[s][i]] + G_k[d_OS[PS[s][i]*I + PI[s][i]]);
 				*A_curr = _max_star(*A_curr,
-						A_prev[*PS_it] + G_k[d_OS[(*PS_it)*d_I + (*PI_it)]]);
-
-				//Update PS/PI iterators
-				++PS_it;
-				++PI_it;
+						A_prev[*(PS_it++)] + G_k[*(ordered_OS_it++)]);
 			}
 
 			//Update iterators
@@ -135,11 +142,7 @@ log_bcjr_base::compute_bw_metrics(const std::vector<float> &G,
 			//Loop
 			for(size_t i=0 ; i < d_I ; ++i) {
 				*B_curr = _max_star(*B_curr,
-						B_next[(d_S-1)-*NS_it] + G_k[(d_O-1)-*OS_it]);
-
-				//Update PS/PI iterators
-				++NS_it;
-				++OS_it;
+						B_next[(d_S-1)-*(NS_it++)] + G_k[(d_O-1)-*(OS_it++)]);
 			}
 
 			//Update iterators

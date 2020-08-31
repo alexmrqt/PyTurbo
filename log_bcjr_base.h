@@ -42,22 +42,32 @@ class log_bcjr_base
 		int	d_S;
 		//! The number of possible output sequences.
 		int d_O;
+
 		/* Gives the next state ns of a branch defined by its
 		 * initial state s and its input symbol i : NS[s*I+i]=ns.
 		 */
 		std::vector<int> d_NS;
+
 		/* Gives the output symbol of of a branch defined by its
 		 * initial state s and its input symbol i : OS[s*I+i]=os.
 		 */
 		std::vector<int> d_OS;
+		
+        /* Same as d_FSM.OS(), but re-ordered in the following way:
+         * d_ordered_OS[s*I+i] = d_OS()[d_PS()[s][i]*I + d_PI()[s][i]]
+		 */
+        std::vector<int> d_ordered_OS;
+
 		/* Defined such that d_PS[s] contains all the previous states having a
 		 * branch with state s.
 		 * Such a previous state may appear multiple time if there are multiple
 		 * transistions between two states.
 		 */
 		std::vector<std::vector<int> > d_PS;
+
 		//! Defined such that d_PI[s] contains all the inputs yielding to state s.
 		std::vector<std::vector<int> > d_PI;
+
 		//! Generates PS, PI and T tables.
 		void generate_PS_PI();
 
