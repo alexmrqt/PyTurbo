@@ -4,6 +4,7 @@ from PyTurbo import PyViterbi as viterbi
 from matplotlib import pyplot as plt
 
 import numpy
+import scipy.special
 
 #Quick implementation of a (7,5) convolutive code encoder
 def encode75(msg):
@@ -29,8 +30,10 @@ def viterbi_branch_metrics(bits_rcvd, nbits_cw):
     cw = numpy.array([[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]]) #The 4 different codewords
 
     bits_rcvd = numpy.array(bits_rcvd).reshape((K, nbits_cw))
-    for k in range(0, K):
-        ret_val[k][:] = numpy.sum(numpy.abs(bits_rcvd[k][:]-cw)**2, axis=1)
+    i=0
+    for cw0 in cw:
+        ret_val[:,i] = numpy.sum(numpy.abs(bits_rcvd-cw0)**2, axis=1)
+        i += 1
 
     return ret_val.flatten()
 
@@ -42,8 +45,10 @@ def log_bcjr_branch_metrics(bits_rcvd, nbits_cw, sigma_b2):
     cw = numpy.array([[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]]) #The 4 different codewords
 
     bits_rcvd = numpy.array(bits_rcvd).reshape((K, nbits_cw))
-    for k in range(0, K):
-        ret_val[k][:] = -1.0/sigma_b2 * numpy.sum(numpy.abs(bits_rcvd[k][:]-cw)**2, axis=1)
+    i=0
+    for cw0 in cw:
+        ret_val[:,i] = -1.0/sigma_b2 * numpy.sum(numpy.abs(bits_rcvd-cw0)**2, axis=1)
+        i += 1
 
     return ret_val.flatten()
 
@@ -54,8 +59,10 @@ def max_log_bcjr_branch_metrics(bits_rcvd, nbits_cw, sigma_b2):
     cw = numpy.array([[0.0,0.0], [0.0,1.0], [1.0,0.0], [1.0,1.0]]) #The 4 different codewords
 
     bits_rcvd = numpy.array(bits_rcvd).reshape((K, nbits_cw))
-    for k in range(0, K):
-        ret_val[k][:] = -numpy.sum(numpy.abs(bits_rcvd[k][:]-cw)**2, axis=1)
+    i=0
+    for cw0 in cw:
+        ret_val[:,i] = -numpy.sum(numpy.abs(bits_rcvd-cw0)**2, axis=1)
+        i += 1
 
     return ret_val.flatten()
 
@@ -64,9 +71,8 @@ def log_bcjr_compute_llr(app, K, S):
     llr = numpy.zeros(K, dtype=numpy.float32)
 
     app = app.reshape((K, S, 2))
-    for k in range(0, K):
-        #We need copy() to make the vectors C-contiguous
-        llr[k] = bcjr.max_star(app[k,:,0].copy()) - bcjr.max_star(app[k,:,1].copy())
+    llr = scipy.special.logsumexp(app[:,:,0], axis=1) \
+        - scipy.special.logsumexp(app[:,:,1], axis=1)
 
     return llr
 
@@ -75,8 +81,6 @@ def max_log_bcjr_compute_llr(app, K, S):
 
     app = app.reshape((K, S, 2))
     llr = numpy.max(app[:,:,0], axis=1) - numpy.max(app[:,:,1], axis=1)
-    #for k in range(0, K):
-    #    llr[k] = numpy.max(app[k,:,0]) - numpy.max(app[k,:,1])
 
     return llr
 
