@@ -62,6 +62,11 @@ class viterbi
 		//! Defined such that d_PI[s] contains all the inputs yielding to state s.
 		std::vector<std::vector<int> > d_PI;
 
+        /* Same as OS, but re-ordered in the following way:
+         * d_ordered_OS[s*I+i] = OS[PS[s][i]*I + PI[s][i]]
+		 */
+        std::vector<int> d_ordered_OS;
+
 		//! Generates PS and PI tables.
 		void generate_PS_PI();
 
@@ -115,7 +120,7 @@ class viterbi
 		 */
 		static void viterbi_algorithm(int I, int S, int O,
 				const std::vector<int> &NS,
-				const std::vector<int> &OS,
+				const std::vector<int> &ordered_OS,
 				const std::vector< std::vector<int> > &PS,
 				const std::vector< std::vector<int> > &PI,
 				int K, int S0, int SK,
